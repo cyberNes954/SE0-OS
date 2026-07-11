@@ -1,4 +1,4 @@
-/* SEO OS™ Alpha v0.1 — Application Engine
+/* SEO OS™ Alpha v0.2 — Application Engine
    Modules: Input → Keyword Engine → Architecture → Product SEO →
    Collection SEO → Blog Engine → Internal Linking → Technical → AI Search
    Everything runs in the browser. No server, no API keys, no cost. */
@@ -169,13 +169,95 @@ function buildPlan(input) {
     ]
   };
 
+  /* Modules 11 & 12 (v0.2) */
+  const competitorIntel = buildCompetitors(input, niche, brand);
+  const growthCalendar = buildGrowthCalendar(input, niche, blogCalendar, tier2);
+
   return {
     meta: { brand, niche: input.niche, nicheLabel: niche.label, audience, country, competitors, products, generatedAt: new Date().toISOString() },
     keywords: { tier1, tier2, tier3, questions, semantic, brand: brandKw },
     architecture: { collections: derivedCollections },
     productSEO, collectionSEO, blogCalendar, linking,
-    checklist: SEOOS_TECH_CHECKLIST, aiSearch
+    checklist: SEOOS_TECH_CHECKLIST, aiSearch,
+    competitorIntel, growthCalendar
   };
+}
+
+
+/* Module 11 — Competitor Intelligence (v0.2)
+   Typed competitors are enriched when recognized; unknowns get positioning analysis;
+   an empty field auto-loads the market leaders from the niche knowledge base. */
+function buildCompetitors(input, niche, brand) {
+  const typed = splitList(input.competitors);
+  const kb = niche.competitors || [];
+  const noun = niche.nouns[0] || "products";
+  const findKB = name => kb.find(c =>
+    c.name.toLowerCase().includes(name.toLowerCase()) || name.toLowerCase().includes(c.name.toLowerCase().split(" ")[0]));
+
+  const cards = [];
+  const used = new Set();
+
+  for (const t of typed) {
+    const hit = findKB(t);
+    if (hit) {
+      cards.push({ ...hit, source: "entered" });
+      used.add(hit.name);
+    } else {
+      cards.push({
+        name: titleCase(t), source: "entered",
+        dominates: "Direct competitor you're tracking in " + niche.label.toLowerCase(),
+        strength: "Study their bestsellers, pricing, and top collections — mirror the demand, not the brand",
+        gap: "Search their name + 'review', 'alternative', 'vs' — those exact phrases are keywords " + brand + " can own"
+      });
+    }
+  }
+  if (typed.length === 0) {
+    for (const c of kb) { cards.push({ ...c, source: "auto" }); used.add(c.name); }
+  } else {
+    for (const c of kb) {
+      if (!used.has(c.name) && cards.length < 6) cards.push({ ...c, source: "auto" });
+    }
+  }
+
+  const gapKeywords = (niche.gapKeywords || []).map(k => fill(k, "", { noun: noun }));
+  return {
+    auto: typed.length === 0,
+    cards,
+    gapKeywords,
+    moves: [
+      "Create an 'alternatives' comparison page: '" + brand + " vs " + (cards[0] ? cards[0].name : "the market leader") + "' — comparison searches convert at buying intent",
+      "Target the gap keywords above with blog posts — the leaders leave these underserved",
+      "Read their 1–3 star reviews: every recurring complaint is a product page headline for " + brand,
+      "Cover the questions their content skips; answer boxes and AI search reward the site that answers directly"
+    ]
+  };
+}
+
+/* Module 12 — 12-Month Growth Calendar (v0.2) */
+function buildGrowthCalendar(input, niche, blogCalendar, tier2) {
+  const monthNames = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+  const start = new Date().getMonth();
+  const lanes = niche.socialLanes || {};
+  const noun = niche.nouns[0] || "products";
+  const seasonal = niche.seasonal || [];
+  const months = [];
+  for (let i = 0; i < 12; i++) {
+    const mIdx = (start + i) % 12;
+    const blogA = blogCalendar[(i * 2) % blogCalendar.length];
+    const blogB = blogCalendar[(i * 2 + 1) % blogCalendar.length];
+    months.push({
+      label: monthNames[mIdx],
+      theme: fill(seasonal[mIdx] || "Evergreen content month", "", { noun: noun }),
+      blogs: [blogA ? blogA.title : "Evergreen guide", blogB ? blogB.title : "Buying guide"],
+      keyword: tier2[i % Math.max(tier2.length, 1)] || noun,
+      pinterest: fill(lanes.pinterest || "", "", { noun: noun }),
+      instagram: fill(lanes.instagram || "", "", { noun: noun }),
+      tiktok: fill(lanes.tiktok || "", "", { noun: noun }),
+      youtube: fill(lanes.youtube || "", "", { noun: noun }),
+      email: i % 3 === 0 ? "Promo: feature a collection + bundle" : i % 3 === 1 ? "Value: send the month's best blog post" : "Story: customer result or behind-the-scenes"
+    });
+  }
+  return months;
 }
 
 function pluralish(p) {
@@ -195,7 +277,8 @@ function buildPrompts(input) {
   const nicheLabel = (SEOOS_NICHES[input.niche] || SEOOS_NICHES.generic).label;
   const products = splitList(input.products).join(", ") || "[products]";
   const audience = input.audience || "[audience]";
-  const competitors = splitList(input.competitors).join(", ") || "[competitors]";
+  const kbNames = ((SEOOS_NICHES[input.niche] || SEOOS_NICHES.generic).competitors || []).map(c => c.name).join(", ");
+  const competitors = splitList(input.competitors).join(", ") || kbNames || "[competitors]";
   return [
     { name: "Product Description Writer",
       text: "Write a Shopify product description for " + brand + " (niche: " + nicheLabel + "). Product: [PRODUCT NAME]. Audience: " + audience + ". Structure: 1-line hook, 4 benefit bullets, features/materials, size or usage guide, care/delivery, 4 FAQs. Tone: confident, specific, no hype words like 'game-changer'. 250-350 words." },
@@ -223,7 +306,7 @@ function planToMarkdown(plan) {
   const m = plan.meta;
   L.push("# SEO OS™ Strategy — " + m.brand);
   L.push("_Niche: " + m.nicheLabel + (m.country ? " · Market: " + m.country : "") + (m.audience ? " · Audience: " + m.audience : "") + "_");
-  L.push("_Generated: " + m.generatedAt.slice(0, 10) + " · SEO OS Alpha v0.1_\n");
+  L.push("_Generated: " + m.generatedAt.slice(0, 10) + " · SEO OS Alpha v0.2_\n");
 
   L.push("## 1. Keyword Map");
   L.push("**Tier 1 — Authority (broad):** " + plan.keywords.tier1.join(" · "));
@@ -279,7 +362,29 @@ function planToMarkdown(plan) {
   L.push("## 8. AI Search Optimization");
   L.push(plan.aiSearch.principle);
   L.push("Questions to answer on-page: " + plan.aiSearch.questions.join(" · "));
-  L.push(plan.aiSearch.actions.map(a => "- " + a).join("\n"));
+  L.push(plan.aiSearch.actions.map(a => "- " + a).join("\n") + "\n");
+
+  L.push("## 9. Competitor Intelligence" + (plan.competitorIntel.auto ? " (market leaders auto-detected)" : ""));
+  for (const c of plan.competitorIntel.cards) {
+    L.push("### " + c.name + (c.source === "auto" ? " (auto)" : ""));
+    L.push("- Dominates: " + c.dominates);
+    L.push("- Strength: " + c.strength);
+    L.push("- Your opening: " + c.gap);
+  }
+  L.push("Gap keywords: " + plan.competitorIntel.gapKeywords.join(" · "));
+  L.push(plan.competitorIntel.moves.map(m => "- " + m).join("\n") + "\n");
+
+  L.push("## 10. Growth Calendar (12 months)");
+  for (const mo of plan.growthCalendar) {
+    L.push("### " + mo.label + " — " + mo.theme);
+    L.push("- Blogs: " + mo.blogs.join(" | "));
+    L.push("- Keyword: `" + mo.keyword + "`");
+    L.push("- Pinterest: " + mo.pinterest);
+    L.push("- Instagram: " + mo.instagram);
+    L.push("- TikTok: " + mo.tiktok);
+    L.push("- YouTube: " + mo.youtube);
+    L.push("- Email: " + mo.email);
+  }
   return L.join("\n");
 }
 
@@ -370,6 +475,33 @@ function renderPlan(plan) {
     "<p class='note'>" + esc(plan.aiSearch.principle) + "</p>" +
     "<h4>Answer these on-page</h4>" + chipRow(plan.aiSearch.questions, true) +
     "<ul>" + plan.aiSearch.actions.map(a => "<li>" + esc(a) + "</li>").join("") + "</ul>");
+
+
+  h += moduleCard(9, "Competitor Intelligence" + (plan.competitorIntel.auto ? " — market leaders auto-detected" : ""),
+    (plan.competitorIntel.auto ?
+      "<p class='note'>No competitors entered, so SEO OS loaded the brands that dominate " + esc(plan.meta.nicheLabel.toLowerCase()) + ". Type specific names in Setup to analyze those instead.</p>" :
+      "<p class='note'>Entered competitors analyzed first; recognized market leaders enriched from the niche knowledge base.</p>") +
+    plan.competitorIntel.cards.map(c =>
+      "<div class='item'><h4>" + esc(c.name) + (c.source === "auto" ? " <span class='chip mono autochip'>AUTO</span>" : "") + "</h4>" +
+      "<div class='kv'><span>Dominates</span><code>" + esc(c.dominates) + "</code></div>" +
+      "<div class='kv'><span>Their strength</span><code>" + esc(c.strength) + "</code></div>" +
+      "<div class='kv'><span>Your opening</span><code>" + esc(c.gap) + "</code></div></div>"
+    ).join("") +
+    "<h4>Gap keywords they underserve</h4>" + chipRow(plan.competitorIntel.gapKeywords, true) +
+    "<h4>Moves</h4><ul>" + plan.competitorIntel.moves.map(m => "<li>" + esc(m) + "</li>").join("") + "</ul>");
+
+  h += moduleCard(10, "Growth Calendar — 12 months",
+    "<p class='note'>Each month: a theme, two blog posts, one target keyword, and a play per social channel. Tap a month to expand.</p>" +
+    plan.growthCalendar.map(mo =>
+      "<details class='month'><summary><span class='mono mlabel'>" + esc(mo.label.toUpperCase()) + "</span> " + esc(mo.theme) + "</summary>" +
+      "<div class='kv'><span>Blog posts</span><code>" + esc(mo.blogs[0]) + "<br>" + esc(mo.blogs[1]) + "</code></div>" +
+      "<div class='kv'><span>Target keyword</span><code>" + esc(mo.keyword) + "</code></div>" +
+      "<div class='kv'><span>Pinterest</span><code>" + esc(mo.pinterest) + "</code></div>" +
+      "<div class='kv'><span>Instagram</span><code>" + esc(mo.instagram) + "</code></div>" +
+      "<div class='kv'><span>TikTok</span><code>" + esc(mo.tiktok) + "</code></div>" +
+      "<div class='kv'><span>YouTube</span><code>" + esc(mo.youtube) + "</code></div>" +
+      "<div class='kv'><span>Email</span><code>" + esc(mo.email) + "</code></div></details>"
+    ).join(""));
 
   out.innerHTML = h;
   out.querySelectorAll(".module").forEach((mod, i) => {
@@ -493,7 +625,7 @@ function switchTab(name) {
 
 /* ---------- boot ---------- */
 document.addEventListener("DOMContentLoaded", () => {
-  console.log("SEO OS™ Alpha v0.1 loaded");
+  console.log("SEO OS™ Alpha v0.2 loaded");
 
   document.querySelectorAll(".tab").forEach(t =>
     t.addEventListener("click", () => switchTab(t.dataset.tab)));
