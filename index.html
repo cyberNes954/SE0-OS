@@ -16,7 +16,7 @@
     <div class="wordmark">
       <span class="logo-dot" aria-hidden="true"></span>
       <span class="brand">SEO&nbsp;OS<sup>™</sup></span>
-      <span class="ver mono">ALPHA v0.1</span>
+      <span class="ver mono">ALPHA v0.2.1</span>
     </div>
     <p class="tagline">Build once. Rank everywhere. Grow organically.</p>
   </header>
@@ -44,13 +44,9 @@
           <label for="fBrand">Brand name</label>
           <input id="fBrand" type="text" placeholder="Velora Fit" autocomplete="off">
 
-          <label for="fNiche">Niche</label>
-          <select id="fNiche">
-            <option value="activewear">Women's Activewear</option>
-            <option value="digital">Digital Products</option>
-            <option value="skincare">Skincare &amp; Beauty</option>
-            <option value="generic">Other / General Ecommerce</option>
-          </select>
+          <label for="fNiche">Niche <span class="hint">(type anything — suggestions below are shortcuts, not limits)</span></label>
+          <input id="fNiche" type="text" list="nicheList" placeholder="e.g. pet supplies, jewelry, coffee, activewear..." autocomplete="off">
+          <datalist id="nicheList"></datalist>
 
           <label for="fCountry">Target country</label>
           <input id="fCountry" type="text" placeholder="United States" autocomplete="off">
@@ -61,7 +57,7 @@
           <label for="fProducts">Products <span class="hint">(comma separated)</span></label>
           <textarea id="fProducts" rows="3" placeholder="seamless leggings, sports bras, matching sets"></textarea>
 
-          <label for="fCompetitors">Competitors <span class="hint">(comma separated)</span></label>
+          <label for="fCompetitors">Competitors <span class="hint">(comma separated — or leave blank to auto-detect the market leaders)</span></label>
           <textarea id="fCompetitors" rows="2" placeholder="Gymshark, AYBL, NVGTN"></textarea>
 
           <div class="btn-row">
@@ -115,7 +111,7 @@
   </main>
 
   <footer class="foot">
-    <span class="mono">SEO OS™ · Organic Growth Operating System · Alpha v0.1</span>
+    <span class="mono">SEO OS™ · Organic Growth Operating System · Alpha v0.2.1</span>
   </footer>
 
   <div id="flash" role="status" aria-live="polite"></div>
