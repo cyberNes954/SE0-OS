@@ -1,4 +1,4 @@
-/* SEO OS™ Alpha v0.1 — Interface
+/* SEO OS™ Alpha v0.2 — Interface
    Palette: pine dark base · harvest amber accent · leaf green = ready states
    Type: Space Grotesk (display) · IBM Plex Sans (body) · IBM Plex Mono (data) */
 
@@ -359,3 +359,16 @@ details summary {
   main { padding: 24px 20px 64px; }
   .brand { font-size: 30px; }
 }
+
+/* v0.2 — competitor + growth calendar */
+.autochip { font-size: 9px; letter-spacing: 1.2px; color: var(--amber); border-color: rgba(233,180,76,0.4); padding: 2px 8px; vertical-align: 2px; }
+details.month {
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--panel-2);
+  padding: 11px 14px;
+  margin-bottom: 10px;
+}
+details.month summary { color: var(--ink); font-size: 14px; margin-top: 0; }
+details.month .mlabel { color: var(--amber); font-size: 10px; letter-spacing: 1.6px; margin-right: 6px; }
+details.month .kv:first-of-type { margin-top: 10px; }
