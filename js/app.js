@@ -28,10 +28,46 @@ function fill(template, p, extra) {
   return t;
 }
 
+/* ---------- niche resolver + synthesizer (v0.2.1) ----------
+   Type any niche. Known niches (matched by name or alias) get the deep
+   hand-built brain; anything else gets a brain synthesized on the spot
+   from the typed words + universal ecommerce patterns. */
+
+function resolveNiche(text) {
+  const q = (text || "").trim().toLowerCase();
+  if (!q) return { key: "generic", niche: SEOOS_NICHES.generic, synthesized: false };
+  for (const key in SEOOS_NICHES) {
+    const n = SEOOS_NICHES[key];
+    if (key === q || n.label.toLowerCase() === q) return { key, niche: n, synthesized: false };
+  }
+  for (const key in SEOOS_NICHES) {
+    const n = SEOOS_NICHES[key];
+    for (const a of (n.aliases || [])) {
+      const al = a.toLowerCase();
+      if (q.includes(al) || (q.length >= 4 && al.includes(q))) return { key, niche: n, synthesized: false };
+    }
+  }
+  return { key: "synth", niche: synthesizeNiche(text), synthesized: true };
+}
+
+function synthesizeNiche(text) {
+  const g = SEOOS_NICHES.generic;
+  const t = text.trim().toLowerCase();
+  return {
+    ...g,
+    label: titleCase(text.trim()),
+    nouns: [t],
+    seeds: [t, "best " + t, t + " brands", t + " online store", "quality " + t],
+    commercial: ["best " + t, "premium " + t, "top rated " + t, t + " reviews", "affordable " + t],
+    transactional: ["buy " + t, "shop " + t + " online", t + " sale", t + " free shipping"]
+  };
+}
+
 /* ---------- the generator (pure — no DOM) ---------- */
 
 function buildPlan(input) {
-  const niche = SEOOS_NICHES[input.niche] || SEOOS_NICHES.generic;
+  const resolved = resolveNiche(input.niche);
+  const niche = resolved.niche;
   const brand = input.brand.trim();
   const products = splitList(input.products);
   const competitors = splitList(input.competitors);
@@ -170,11 +206,11 @@ function buildPlan(input) {
   };
 
   /* Modules 11 & 12 (v0.2) */
-  const competitorIntel = buildCompetitors(input, niche, brand);
+  const competitorIntel = buildCompetitors(input, niche, brand, resolved.synthesized);
   const growthCalendar = buildGrowthCalendar(input, niche, blogCalendar, tier2);
 
   return {
-    meta: { brand, niche: input.niche, nicheLabel: niche.label, audience, country, competitors, products, generatedAt: new Date().toISOString() },
+    meta: { brand, niche: input.niche, nicheLabel: niche.label, synthesized: resolved.synthesized, audience, country, competitors, products, generatedAt: new Date().toISOString() },
     keywords: { tier1, tier2, tier3, questions, semantic, brand: brandKw },
     architecture: { collections: derivedCollections },
     productSEO, collectionSEO, blogCalendar, linking,
@@ -187,7 +223,7 @@ function buildPlan(input) {
 /* Module 11 — Competitor Intelligence (v0.2)
    Typed competitors are enriched when recognized; unknowns get positioning analysis;
    an empty field auto-loads the market leaders from the niche knowledge base. */
-function buildCompetitors(input, niche, brand) {
+function buildCompetitors(input, niche, brand, synthesized) {
   const typed = splitList(input.competitors);
   const kb = niche.competitors || [];
   const noun = niche.nouns[0] || "products";
@@ -222,6 +258,7 @@ function buildCompetitors(input, niche, brand) {
   const gapKeywords = (niche.gapKeywords || []).map(k => fill(k, "", { noun: noun }));
   return {
     auto: typed.length === 0,
+    synthesized: !!synthesized,
     cards,
     gapKeywords,
     moves: [
@@ -274,10 +311,11 @@ function clamp155(s) { return s.length <= 155 ? s : s.slice(0, 152).replace(/\s+
 
 function buildPrompts(input) {
   const brand = input.brand || "[Brand]";
-  const nicheLabel = (SEOOS_NICHES[input.niche] || SEOOS_NICHES.generic).label;
+  const rz = resolveNiche(input.niche);
+  const nicheLabel = rz.niche.label;
   const products = splitList(input.products).join(", ") || "[products]";
   const audience = input.audience || "[audience]";
-  const kbNames = ((SEOOS_NICHES[input.niche] || SEOOS_NICHES.generic).competitors || []).map(c => c.name).join(", ");
+  const kbNames = (rz.niche.competitors || []).map(c => c.name).join(", ");
   const competitors = splitList(input.competitors).join(", ") || kbNames || "[competitors]";
   return [
     { name: "Product Description Writer",
@@ -306,7 +344,7 @@ function planToMarkdown(plan) {
   const m = plan.meta;
   L.push("# SEO OS™ Strategy — " + m.brand);
   L.push("_Niche: " + m.nicheLabel + (m.country ? " · Market: " + m.country : "") + (m.audience ? " · Audience: " + m.audience : "") + "_");
-  L.push("_Generated: " + m.generatedAt.slice(0, 10) + " · SEO OS Alpha v0.2_\n");
+  L.push("_Generated: " + m.generatedAt.slice(0, 10) + " · SEO OS Alpha v0.2.1_\n");
 
   L.push("## 1. Keyword Map");
   L.push("**Tier 1 — Authority (broad):** " + plan.keywords.tier1.join(" · "));
@@ -478,7 +516,9 @@ function renderPlan(plan) {
 
 
   h += moduleCard(9, "Competitor Intelligence" + (plan.competitorIntel.auto ? " — market leaders auto-detected" : ""),
-    (plan.competitorIntel.auto ?
+    (plan.competitorIntel.synthesized ?
+      "<p class='note'>" + esc(plan.meta.nicheLabel) + " isn't in the deep knowledge base yet, so SEO OS synthesized this analysis from universal ecommerce patterns. Live market data arrives in the AI-connected version.</p>" :
+     plan.competitorIntel.auto ?
       "<p class='note'>No competitors entered, so SEO OS loaded the brands that dominate " + esc(plan.meta.nicheLabel.toLowerCase()) + ". Type specific names in Setup to analyze those instead.</p>" :
       "<p class='note'>Entered competitors analyzed first; recognized market leaders enriched from the niche knowledge base.</p>") +
     plan.competitorIntel.cards.map(c =>
@@ -559,7 +599,7 @@ function renderProjects() {
   const names = Object.keys(all).sort();
   $("projectList").innerHTML = names.length ? names.map(n =>
     "<div class='item proj'><div><h4>" + esc(n) + "</h4><p class='note mono'>" +
-    esc((SEOOS_NICHES[all[n].input.niche] || SEOOS_NICHES.generic).label) + " · saved " + all[n].savedAt.slice(0, 10) +
+    esc(resolveNiche(all[n].input.niche).niche.label) + " · saved " + all[n].savedAt.slice(0, 10) +
     "</p></div><div class='proj-btns'><button class='btn small' data-load='" + esc(n) + "'>Load</button>" +
     "<button class='btn small danger' data-del='" + esc(n) + "'>Delete</button></div></div>").join("")
     : "<p class='note'>No saved projects yet. Fill in Setup and tap “Save project”. Projects are stored in this browser.</p>";
@@ -581,7 +621,7 @@ function readForm() {
   };
 }
 function writeForm(v) {
-  $("fBrand").value = v.brand || ""; $("fNiche").value = v.niche || "generic";
+  $("fBrand").value = v.brand || ""; $("fNiche").value = v.niche || "";
   $("fCountry").value = v.country || ""; $("fAudience").value = v.audience || "";
   $("fProducts").value = v.products || ""; $("fCompetitors").value = v.competitors || "";
 }
@@ -625,7 +665,14 @@ function switchTab(name) {
 
 /* ---------- boot ---------- */
 document.addEventListener("DOMContentLoaded", () => {
-  console.log("SEO OS™ Alpha v0.2 loaded");
+  console.log("SEO OS™ Alpha v0.2.1 loaded");
+
+  const dl = $("nicheList");
+  if (dl) {
+    dl.innerHTML = Object.keys(SEOOS_NICHES)
+      .filter(k => k !== "generic")
+      .map(k => "<option value=" + JSON.stringify(SEOOS_NICHES[k].label) + ">").join("");
+  }
 
   document.querySelectorAll(".tab").forEach(t =>
     t.addEventListener("click", () => switchTab(t.dataset.tab)));
@@ -643,7 +690,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const demo = $("demoBtn");
   if (demo) demo.addEventListener("click", () => {
     writeForm({
-      brand: "Velora Fit", niche: "activewear", country: "United States",
+      brand: "Velora Fit", niche: "Women's Activewear", country: "United States",
       audience: "women 18-45",
       products: "seamless leggings, sports bras, matching sets, gym shorts",
       competitors: "Gymshark, AYBL, NVGTN"
