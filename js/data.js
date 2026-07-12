@@ -237,3 +237,126 @@ const SEOOS_NICHES = {
       ],
       intermediate: [
         "Niacinamide vs Vitamin C: Which Do You Need",
+        "How to Repair a Damaged Skin Barrier",
+        "Morning vs Night Routines: What Actually Changes"
+      ],
+      advanced: [
+        "How to Read a Skincare Ingredient List",
+        "Actives That Don't Mix: A Layering Guide",
+        "What 'Clean Beauty' Really Means (and Doesn't)"
+      ]
+    },
+    faqTemplates: [
+      "Is {p} suitable for sensitive skin?",
+      "Is {p} fragrance-free?",
+      "How do I add {p} to my routine?",
+      "Is {p} cruelty-free?",
+      "How long does one bottle of {p} last?"
+    ],
+    metaTemplate: "Meet {brand} {p} — gentle, effective skincare made for real routines. Shop {noun} that your skin will thank you for.",
+  },
+
+  generic: {
+    aliases: ["ecommerce", "general", "other", "online store"],
+    competitors: [
+      { name: "Amazon", dominates: "Convenience and price-comparison searches in every category", strength: "Prime shipping trust and review volume", gap: "Brand story, expertise content, and post-purchase relationship — Amazon can't do niche authority" },
+      { name: "The category big-box leader", dominates: "High-volume head keywords through domain authority", strength: "Massive catalog and paid + organic dominance", gap: "Depth on long-tail questions — they rank broadly but answer nothing specifically" },
+      { name: "The top DTC brand in your niche", dominates: "Brand-name searches and social presence", strength: "Community and recognizable identity", gap: "Informational SEO — most DTC brands run on ads and neglect search content" }
+    ],
+    gapKeywords: [
+      "best {noun} for beginners", "how to choose {noun}", "{noun} buying guide",
+      "affordable quality {noun}", "{noun} comparison", "is premium {noun} worth it"
+    ],
+    socialLanes: {
+      pinterest: "Product styling and how-to pins tied to each collection",
+      instagram: "Educational carousels answering your top customer questions",
+      tiktok: "Behind-the-scenes, honest demos, and comparison content",
+      youtube: "Searchable 'best {noun} for ___' reviews and tutorials"
+    },
+    seasonal: [
+      "New year fresh-start content", "Valentine's gifting angle", "Spring refresh content",
+      "Q2 buying guides", "Early summer prep guides", "Summer use-case content",
+      "Mid-year sale positioning", "Back-to-school angle", "Fall preparation content",
+      "Early holiday research + gift guides launch", "BFCM peak — bundles and urgency", "Last-minute gifts + year wrap-up"
+    ],
+    label: "General Ecommerce",
+    nouns: ["products", "online store", "shop"],
+    benefits: ["Premium", "Best-Selling", "Top-Rated", "High-Quality"],
+    seeds: [],
+    commercial: [],
+    transactional: [],
+    semantic: [
+      "free shipping", "customer reviews", "size guide", "gift ideas",
+      "new arrivals", "best sellers", "official store"
+    ],
+    questionTemplates: [
+      "is {p} worth it",
+      "how do I use {p}",
+      "what size {p} should I choose",
+      "how long does {p} last",
+      "what is {p} made of"
+    ],
+    collections: ["Best Sellers", "New Arrivals", "Bundles", "Sale"],
+    blogTopics: {
+      beginner: [
+        "How to Choose the Right {noun} for You",
+        "A Beginner's Guide to {noun}",
+        "5 Things to Know Before Buying {noun}"
+      ],
+      intermediate: [
+        "How to Get the Most Out of Your {noun}",
+        "{noun} Care Guide: Make It Last",
+        "Common {noun} Mistakes to Avoid"
+      ],
+      advanced: [
+        "How Quality {noun} Is Actually Made",
+        "What Separates Premium {noun} From Cheap Alternatives",
+        "The Complete {noun} Buying Framework"
+      ]
+    },
+    faqTemplates: [
+      "How is {p} shipped?",
+      "What is your return policy on {p}?",
+      "Is {p} in stock?",
+      "How do I use {p}?",
+      "Is there a warranty on {p}?"
+    ],
+    metaTemplate: "Shop {brand} {p} — quality you can count on, backed by real support. Order today.",
+  }
+};
+
+/* Static Shopify technical SEO checklist (v0.1) */
+const SEOOS_TECH_CHECKLIST = [
+  { area: "Indexing", items: [
+    "Submit sitemap.xml to Google Search Console (yourstore.com/sitemap.xml)",
+    "Verify domain in Google Search Console and Bing Webmaster Tools",
+    "Check robots.txt isn't blocking collections or products",
+    "Remove password protection so search engines can crawl the store"
+  ]},
+  { area: "On-Page", items: [
+    "Every page has a unique SEO title under 60 characters",
+    "Every page has a unique meta description under 155 characters",
+    "One H1 per page, matching the primary keyword",
+    "URLs are short, lowercase, and keyword-based (no /products/copy-of-...)"
+  ]},
+  { area: "Images", items: [
+    "Rename image files before upload (brand-product-keyword.jpg, never IMG_1234.jpg)",
+    "Add descriptive alt text to every product image",
+    "Compress images (Shopify serves WebP automatically, but start under ~500KB)"
+  ]},
+  { area: "Speed & Mobile", items: [
+    "Run PageSpeed Insights on homepage, one collection, one product",
+    "Remove unused Shopify apps (each app adds scripts)",
+    "Test checkout and navigation on a real phone"
+  ]},
+  { area: "Structured Data", items: [
+    "Confirm product schema shows price, availability, reviews (test with Google Rich Results Test)",
+    "Add FAQ schema to pages with FAQ sections",
+    "Enable breadcrumbs in theme settings"
+  ]},
+  { area: "Content Hygiene", items: [
+    "No duplicate product descriptions copied from suppliers",
+    "Collection pages have at least 300 words of unique intro copy",
+    "Old/deleted product URLs are redirected (Online Store → Navigation → URL Redirects)"
+  ]}
+];
