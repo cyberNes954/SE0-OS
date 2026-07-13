@@ -372,3 +372,19 @@ details.month {
 details.month summary { color: var(--ink); font-size: 14px; margin-top: 0; }
 details.month .mlabel { color: var(--amber); font-size: 10px; letter-spacing: 1.6px; margin-right: 6px; }
 details.month .kv:first-of-type { margin-top: 10px; }
+
+/* v0.3 — research consoles */
+.plinks { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 4px; }
+.plink {
+  display: inline-block;
+  background: var(--bg);
+  border: 1px solid rgba(233,180,76,0.45);
+  color: var(--amber);
+  border-radius: 999px;
+  padding: 6px 13px;
+  font-size: 12.5px;
+  font-family: var(--display);
+  text-decoration: none;
+}
+.plink:active { background: var(--amber); color: var(--amber-ink); }
+.kv code.where { color: var(--muted); font-size: 11px; margin-bottom: 3px; }
