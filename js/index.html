@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SEO OS™ — Shopify Organic Growth Operating System</title>
+  <meta name="description" content="SEO OS™ generates a complete organic growth strategy for any Shopify store: keyword map, store architecture, product SEO, blog calendar, and technical checklist.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <header class="topbar">
+    <div class="wordmark">
+      <span class="logo-dot" aria-hidden="true"></span>
+      <span class="brand">SEO&nbsp;OS<sup>™</sup></span>
+      <span class="ver mono">ALPHA v0.3.0</span>
+    </div>
+    <p class="tagline">Build once. Rank everywhere. Grow organically.</p>
+  </header>
+
+  <nav class="tabs" aria-label="Modules">
+    <button class="tab active" data-tab="setup">Setup</button>
+    <button class="tab" data-tab="plan">Plan</button>
+    <button class="tab" data-tab="prompts">Prompts</button>
+    <button class="tab" data-tab="projects">Projects</button>
+  </nav>
+
+  <main>
+
+    <!-- SETUP -->
+    <section class="panel active" id="panel-setup">
+      <div class="module ready">
+        <div class="module-head">
+          <span class="module-id mono">MODULE 00</span>
+          <span class="module-name">Business Intelligence</span>
+          <span class="module-dot" aria-hidden="true"></span>
+        </div>
+        <div class="module-body">
+          <p class="note">Tell SEO OS what you're optimizing. It generates the full strategy from these six inputs.</p>
+
+          <label for="fBrand">Brand name</label>
+          <input id="fBrand" type="text" placeholder="Velora Fit" autocomplete="off">
+
+          <label for="fNiche">Niche <span class="hint">(type anything — suggestions below are shortcuts, not limits)</span></label>
+          <input id="fNiche" type="text" list="nicheList" placeholder="e.g. pet supplies, jewelry, coffee, activewear..." autocomplete="off">
+          <datalist id="nicheList"></datalist>
+
+          <label for="fCountry">Target country</label>
+          <input id="fCountry" type="text" placeholder="United States" autocomplete="off">
+
+          <label for="fAudience">Target audience</label>
+          <input id="fAudience" type="text" placeholder="women 18-45" autocomplete="off">
+
+          <label for="fProducts">Products <span class="hint">(comma separated)</span></label>
+          <textarea id="fProducts" rows="3" placeholder="seamless leggings, sports bras, matching sets"></textarea>
+
+          <label for="fCompetitors">Competitors <span class="hint">(comma separated — or leave blank to auto-detect the market leaders)</span></label>
+          <textarea id="fCompetitors" rows="2" placeholder="Gymshark, AYBL, NVGTN"></textarea>
+
+          <div class="btn-row">
+            <button class="btn primary" id="generateBtn">Generate SEO strategy</button>
+            <button class="btn ghost" id="saveBtn">Save project</button>
+            <button class="btn ghost" id="demoBtn">Load demo</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PLAN -->
+    <section class="panel" id="panel-plan">
+      <div id="planOutput">
+        <div class="empty">
+          <p class="mono">NO PLAN GENERATED</p>
+          <p>Fill in Setup and tap <strong>Generate SEO strategy</strong>. Your full plan will build here, module by module.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- PROMPTS -->
+    <section class="panel" id="panel-prompts">
+      <div class="module ready">
+        <div class="module-head">
+          <span class="module-id mono">MODULE 09</span>
+          <span class="module-name">Prompt Engine</span>
+          <span class="module-dot" aria-hidden="true"></span>
+        </div>
+        <div class="module-body">
+          <p class="note">Ready-to-paste prompts, pre-filled with your Setup details. Copy one, paste it into Claude, fill the [BRACKETS], and get finished content — no API costs.</p>
+          <div id="promptList"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- PROJECTS -->
+    <section class="panel" id="panel-projects">
+      <div class="module ready">
+        <div class="module-head">
+          <span class="module-id mono">MODULE 10</span>
+          <span class="module-name">Saved Projects</span>
+          <span class="module-dot" aria-hidden="true"></span>
+        </div>
+        <div class="module-body">
+          <div id="projectList"></div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="foot">
+    <span class="mono">SEO OS™ · Organic Growth Operating System · Alpha v0.3.0</span>
+  </footer>
+
+  <div id="flash" role="status" aria-live="polite"></div>
+
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
