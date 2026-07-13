@@ -108,6 +108,8 @@ function buildPlan(input) {
   /* Module 3 — Product SEO (per product) */
   const productSEO = products.map(p => {
     const P = titleCase(p);
+    const dsCat = detectDropshipCategory(p);
+    const buyerKeywords = expandProductKeywords(p, dsCat);
     const benefit = niche.benefits[0] || "Premium";
     const benefit2 = niche.benefits[1] || "Best-Selling";
     const t1 = brand + " " + P + " | " + benefit + " " + titleCase(noun);
@@ -134,7 +136,9 @@ function buildPlan(input) {
         "3–5 FAQs (see below)",
         "Link to related collection + 1 blog post"
       ],
-      faqs: niche.faqTemplates.map(t => fill(t, P))
+      faqs: niche.faqTemplates.map(t => fill(t, P)),
+      category: dsCat ? dsCat.label : null,
+      buyerKeywords
     };
   });
 
@@ -209,13 +213,16 @@ function buildPlan(input) {
   const competitorIntel = buildCompetitors(input, niche, brand, resolved.synthesized);
   const growthCalendar = buildGrowthCalendar(input, niche, blogCalendar, tier2);
 
+
   return {
     meta: { brand, niche: input.niche, nicheLabel: niche.label, synthesized: resolved.synthesized, audience, country, competitors, products, generatedAt: new Date().toISOString() },
     keywords: { tier1, tier2, tier3, questions, semantic, brand: brandKw },
     architecture: { collections: derivedCollections },
     productSEO, collectionSEO, blogCalendar, linking,
     checklist: SEOOS_TECH_CHECKLIST, aiSearch,
-    competitorIntel, growthCalendar
+    competitorIntel, growthCalendar,
+    placements: buildPlacements({ meta: { brand, audience, products }, keywords: { tier1, tier2, tier3, semantic, questions }, productSEO }, niche),
+    sourcing: buildSourcing({ meta: { brand, audience, products } }, niche)
   };
 }
 
@@ -297,6 +304,119 @@ function buildGrowthCalendar(input, niche, blogCalendar, tier2) {
   return months;
 }
 
+
+
+/* ===== v0.3 — Keyword Placement Engine ===== */
+function buildPlacements(plan, niche) {
+  const brand = plan.meta.brand;
+  const audience = plan.meta.audience;
+  const noun = niche.nouns[0] || "products";
+  const kwPool = uniq([...plan.keywords.tier2, ...plan.keywords.tier3, ...plan.keywords.semantic]);
+  return plan.productSEO.map(p => {
+    const b1 = (niche.benefits[0] || "Premium");
+    const b2 = (niche.benefits[1] || "Top-Rated");
+    const values = {
+      seoTitle: p.seoTitle,
+      meta: p.meta,
+      slugbare: p.slug.replace("/products/", ""),
+      h1: p.h1,
+      alt1: p.alts[0],
+      firstline: p.name + " by " + brand + " \u2014 " + b1.toLowerCase() + " " + noun + (audience ? " for " + audience.toLowerCase() : "") + ". [continue description]",
+      amzTitle: clampN(brand + " " + p.name + ", " + b1 + " " + titleCase(noun) + (audience ? " for " + titleCase(audience) : "") + ", " + b2, 200),
+      backend: backendTerms(kwPool, brand + " " + p.name),
+      ebayTitle: clampN(brand + " " + p.name + " " + b1 + " " + b2, 80),
+      wmName: clampN(brand + " " + p.name + " " + b1, 75),
+      bullets: [
+        b1.toUpperCase() + " \u2014 " + p.name.toLowerCase() + " built for daily use",
+        b2.toUpperCase() + " \u2014 " + (plan.keywords.tier2[0] || noun),
+        "PERFECT FOR " + (audience || "everyday customers").toUpperCase(),
+        "EASY CARE \u2014 " + (plan.keywords.questions[2] || "simple maintenance"),
+        "SHOP " + brand.toUpperCase() + " \u2014 " + (plan.keywords.tier3[0] || "order today")
+      ].join("\n"),
+      questions: plan.keywords.questions.slice(0, 4).join("\n"),
+      specifics: "Brand: " + brand + " \u00b7 Type: " + p.name + " \u00b7 " + b1 + " \u00b7 " + b2
+    };
+    return { product: p.name, platforms: SEOOS_PLATFORMS.map(pl => ({
+      key: pl.key, label: pl.label,
+      rows: pl.fields.map(f => ({ f: f.f, where: f.where, rule: f.rule, content: values[f.use] || "" }))
+    })) };
+  });
+}
+function backendTerms(pool, titleText) {
+  const used = new Set(titleText.toLowerCase().split(/[^a-z0-9]+/));
+  const words = [];
+  for (const k of pool) for (const w of k.toLowerCase().split(/[^a-z0-9]+/)) {
+    if (w.length > 2 && !used.has(w) && !words.includes(w)) words.push(w);
+  }
+  let out = "";
+  for (const w of words) { if ((out + " " + w).length > 240) break; out += (out ? " " : "") + w; }
+  return out;
+}
+function clampN(s, n) { return s.length <= n ? s : s.slice(0, n - 1).replace(/[\s,]+\S*$/, ""); }
+
+/* ===== v0.3 — Competitor research console (links open in the user's browser) ===== */
+function competitorLinks(c) {
+  const name = c.name;
+  const dom = c.domain || (name.includes(".") ? name.toLowerCase().replace(/^https?:\/\//, "").split("/")[0] : null);
+  const g = q => "https://www.google.com/search?q=" + encodeURIComponent(q);
+  const L = [];
+  if (dom) {
+    L.push({ t: "Best-sellers (Shopify trick)", u: "https://" + dom + "/collections/all?sort_by=best-selling" });
+    L.push({ t: "Full catalog (sitemap)", u: "https://" + dom + "/sitemap.xml" });
+    L.push({ t: "Indexed pages", u: g("site:" + dom) });
+    L.push({ t: "Tech + apps they run", u: "https://builtwith.com/" + dom });
+  } else {
+    L.push({ t: "Find their site", u: g(name + " official website") });
+  }
+  L.push({ t: "Their LIVE ads", u: "https://www.facebook.com/ads/library/?active_status=all&ad_type=all&country=ALL&media_type=all&q=" + encodeURIComponent(name) });
+  L.push({ t: "Review complaints", u: g(name + " reviews reddit OR trustpilot") });
+  return L;
+}
+const SEOOS_PROTOCOL = [
+  "Open Best-sellers \u2014 write down their top 10 products. That list = proven demand. Stock/create your versions.",
+  "Open the sitemap \u2014 copy their collection structure into your Store Architecture (Module 02). Structure, not branding.",
+  "Open their LIVE ads \u2014 ads running 30+ days are profitable. Note the hook, offer, and angle; rewrite in your voice.",
+  "Open Review complaints \u2014 every recurring 1\u20133\u2605 complaint becomes a headline on YOUR product page (\u2018finally, leggings that don\u2019t roll down\u2019).",
+  "Open Indexed pages \u2014 see which blog topics they rank for; cover the ones they answer badly, deeper.",
+  "Check Tech + apps \u2014 their review app, bundle app, email tool. Install equivalents.",
+  "Do NOT copy: name, logo, photos, copy text. Copy the demand and the structure \u2014 own the voice."
+];
+
+/* ===== v0.3 — Product Sourcing Intelligence ===== */
+function buildSourcing(plan, niche) {
+  const attrs = (niche && niche.benefits && niche.benefits.length > 4) ? niche.benefits.map(b => b.toLowerCase()) : SEOOS_ATTRS;
+  return plan.meta.products.map(p => ({
+    product: titleCase(p),
+    links: SEOOS_SOURCING.map(s => ({ t: s.label, u: s.url(p.toLowerCase()) })),
+    patternKw: uniq([
+      ...attrs.slice(0, 6).map(a => a + " " + p.toLowerCase()),
+      p.toLowerCase() + (plan.meta.audience ? " for " + plan.meta.audience.toLowerCase() : " gift"),
+      "wholesale " + p.toLowerCase(),
+      "bulk " + p.toLowerCase()
+    ])
+  }));
+}
+
+/* ============ v0.3 — Dropshipping Product Keyword Engine ============ */
+function detectDropshipCategory(productName) {
+  const q = productName.toLowerCase();
+  for (const cat of SEOOS_DROPSHIP) {
+    for (const m of cat.match) if (q.includes(m)) return cat;
+  }
+  return null;
+}
+function expandProductKeywords(productName, cat) {
+  const p = productName.toLowerCase();
+  if (!cat) return [];
+  const out = [];
+  for (const m of cat.modifiers.slice(0, 5)) out.push(/^for /.test(m) ? p + " " + m : m + " " + p);
+  for (const pr of cat.problems.slice(0, 3)) out.push(p + " that " + pr);
+  for (const a of cat.audiences.slice(0, 3)) out.push(p + " for " + a);
+  out.push("viral " + p, p + " tiktok");
+  return uniq(out);
+}
+
+
 function pluralish(p) {
   const w = p.trim();
   if (/^the\s/i.test(w) || w.split(/\s+/).length > 2) return w; // product names/titles stay as-is
@@ -332,6 +452,8 @@ function buildPrompts(input) {
       text: "Generate SEO filenames and alt text for product photos. Brand: " + brand + ". For each product I list, give: filename (lowercase-hyphenated, starts with brand) and alt text (describes the image for a blind user AND includes the product keyword naturally). Products: [PASTE LIST]." },
     { name: "FAQ Schema Generator",
       text: "Convert these FAQs into valid FAQPage JSON-LD schema markup I can paste into a Shopify page: [PASTE Q&A LIST]. Output only the <script type=\"application/ld+json\"> block." },
+    { name: "Live Competitor Research (run in Claude with web search)",
+      text: "Use web search to research the ecommerce brand [COMPETITOR NAME] right now. My store is " + brand + " (" + nicheLabel + ", products: " + products + "). Find and report: 1) their current best-selling products and price points, 2) their collection/category structure, 3) their SEO title patterns on product pages, 4) recurring complaints in recent reviews, 5) what content/blog topics they rank for, 6) any active promotions. Then give me a numbered action list: exactly what " + brand + " should replicate (structure and demand, never branding) and where each finding goes in my store." },
     { name: "AI Search Answer Block",
       text: "For the product '" + brand + " [PRODUCT]', write a 'Quick Answers' section: take these customer questions [PASTE QUESTIONS] and answer each in 1-2 factual sentences an AI assistant could quote directly. No marketing language — just clear facts." }
   ];
@@ -344,7 +466,7 @@ function planToMarkdown(plan) {
   const m = plan.meta;
   L.push("# SEO OS™ Strategy — " + m.brand);
   L.push("_Niche: " + m.nicheLabel + (m.country ? " · Market: " + m.country : "") + (m.audience ? " · Audience: " + m.audience : "") + "_");
-  L.push("_Generated: " + m.generatedAt.slice(0, 10) + " · SEO OS Alpha v0.2.1_\n");
+  L.push("_Generated: " + m.generatedAt.slice(0, 10) + " · SEO OS Alpha v0.3.0_\n");
 
   L.push("## 1. Keyword Map");
   L.push("**Tier 1 — Authority (broad):** " + plan.keywords.tier1.join(" · "));
@@ -423,6 +545,22 @@ function planToMarkdown(plan) {
     L.push("- YouTube: " + mo.youtube);
     L.push("- Email: " + mo.email);
   }
+  L.push("");
+  L.push("## 11. Keyword Placement Map");
+  for (const pp of plan.placements) {
+    L.push("### " + pp.product);
+    for (const pl of pp.platforms) {
+      L.push("**" + pl.label + "**");
+      for (const r of pl.rows) L.push("- " + r.f + " (" + r.rule + ") \u2014 " + r.where + " \u2192 `" + r.content.split("\n")[0] + "`");
+    }
+  }
+  L.push("");
+  L.push("## 12. Product Sourcing Intelligence");
+  for (const sc of plan.sourcing) {
+    L.push("### " + sc.product);
+    L.push(sc.links.map(l => "- " + l.t + ": " + l.u).join("\n"));
+    L.push("Pattern keywords: " + sc.patternKw.join(" \u00b7 "));
+  }
   return L.join("\n");
 }
 
@@ -480,6 +618,8 @@ function renderPlan(plan) {
       "<div class='kv'><span>Meta</span><code>" + esc(p.meta) + "</code></div>" +
       "<div class='kv'><span>URL</span><code>" + esc(p.slug) + "</code></div>" +
       "<div class='kv'><span>Images</span><code>" + p.alts.map(esc).join("<br>") + "</code></div>" +
+      (p.buyerKeywords && p.buyerKeywords.length ?
+        "<div class='kv'><span>Buyer keywords" + (p.category ? " · " + esc(p.category) + " (dropship engine)" : "") + "</span></div>" + chipRow(p.buyerKeywords, true) : "") +
       "<details><summary>Description outline + FAQs</summary><ol>" +
       p.descriptionOutline.map(d => "<li>" + esc(d) + "</li>").join("") + "</ol>" +
       "<p class='note'>FAQs: " + p.faqs.map(esc).join(" · ") + "</p></details></div>"
@@ -525,10 +665,10 @@ function renderPlan(plan) {
       "<div class='item'><h4>" + esc(c.name) + (c.source === "auto" ? " <span class='chip mono autochip'>AUTO</span>" : "") + "</h4>" +
       "<div class='kv'><span>Dominates</span><code>" + esc(c.dominates) + "</code></div>" +
       "<div class='kv'><span>Their strength</span><code>" + esc(c.strength) + "</code></div>" +
-      "<div class='kv'><span>Your opening</span><code>" + esc(c.gap) + "</code></div></div>"
+      "<div class='kv'><span>Your opening</span><code>" + esc(c.gap) + "</code></div>" + "<div class='kv'><span>Research console \u2014 tap to open</span><div class='plinks'>" + competitorLinks(c).map(l => "<a class='plink' target='_blank' rel='noopener' href='" + l.u + "'>" + esc(l.t) + "</a>").join("") + "</div></div></div>"
     ).join("") +
     "<h4>Gap keywords they underserve</h4>" + chipRow(plan.competitorIntel.gapKeywords, true) +
-    "<h4>Moves</h4><ul>" + plan.competitorIntel.moves.map(m => "<li>" + esc(m) + "</li>").join("") + "</ul>");
+    "<h4>Moves</h4><ul>" + plan.competitorIntel.moves.map(m => "<li>" + esc(m) + "</li>").join("") + "</ul>" + "<h4>7-Step Replication Protocol</h4><ol>" + SEOOS_PROTOCOL.map(x => "<li>" + esc(x) + "</li>").join("") + "</ol>");
 
   h += moduleCard(10, "Growth Calendar — 12 months",
     "<p class='note'>Each month: a theme, two blog posts, one target keyword, and a play per social channel. Tap a month to expand.</p>" +
@@ -541,6 +681,30 @@ function renderPlan(plan) {
       "<div class='kv'><span>TikTok</span><code>" + esc(mo.tiktok) + "</code></div>" +
       "<div class='kv'><span>YouTube</span><code>" + esc(mo.youtube) + "</code></div>" +
       "<div class='kv'><span>Email</span><code>" + esc(mo.email) + "</code></div></details>"
+    ).join(""));
+
+
+  h += moduleCard(11, "Keyword Placement Map",
+    "<p class='note'>Exactly where each keyword goes \u2014 the field, the navigation path, and the pre-filled content \u2014 per platform. Tap a platform to expand.</p>" +
+    plan.placements.map(pp =>
+      "<div class='item'><h4>" + esc(pp.product) + "</h4>" +
+      pp.platforms.map(pl =>
+        "<details class='month'><summary><span class='mono mlabel'>" + esc(pl.label.toUpperCase()) + "</span> " + pl.rows.length + " placements</summary>" +
+        pl.rows.map(r =>
+          "<div class='kv'><span>" + esc(r.f) + " \u00b7 " + esc(r.rule) + "</span>" +
+          "<code class='where'>\uD83D\uDCCD " + esc(r.where) + "</code>" +
+          "<code>" + esc(r.content).replace(/\n/g, "<br>") + "</code></div>"
+        ).join("") + "</details>"
+      ).join("") + "</div>"
+    ).join(""));
+
+  h += moduleCard(12, "Product Sourcing Intelligence",
+    "<p class='note'>Live product research on AliExpress, Alibaba, CJdropshipping, Temu and 1688 \u2014 pre-loaded searches that open in your browser, plus marketplace-pattern keywords to validate. Auto-ingestion of this data arrives in the AI-connected version.</p>" +
+    plan.sourcing.map(sc =>
+      "<div class='item'><h4>" + esc(sc.product) + "</h4>" +
+      "<div class='kv'><span>Search this product live</span><div class='plinks'>" +
+      sc.links.map(l => "<a class='plink' target='_blank' rel='noopener' href='" + l.u + "'>" + esc(l.t) + "</a>").join("") +
+      "</div></div><h4>Marketplace-pattern keywords</h4>" + chipRow(sc.patternKw, true) + "</div>"
     ).join(""));
 
   out.innerHTML = h;
@@ -665,7 +829,7 @@ function switchTab(name) {
 
 /* ---------- boot ---------- */
 document.addEventListener("DOMContentLoaded", () => {
-  console.log("SEO OS™ Alpha v0.2.1 loaded");
+  console.log("SEO OS™ Alpha v0.3.0 loaded");
 
   const dl = $("nicheList");
   if (dl) {
